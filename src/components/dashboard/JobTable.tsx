@@ -83,6 +83,9 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
                 <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{job.createdAt}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
                   <div className="flex justify-end gap-1">
+                    <Button size="icon" variant="ghost" onClick={() => handleSave(job)} aria-label="Save">
+                      <Bookmark className="h-4 w-4" />
+                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => onEdit(job)} aria-label="Edit">
                       <Pencil className="h-4 w-4" />
                     </Button>
