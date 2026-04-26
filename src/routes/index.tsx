@@ -19,6 +19,7 @@ export const Route = createFileRoute("/")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -36,11 +37,32 @@ function LoginPage() {
     if (!email.trim()) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Enter a valid email";
     if (!password) newErrors.password = "Password is required";
+    else if (mode === "signup" && password.length < 6)
+      newErrors.password = "Password must be at least 6 characters";
     if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
     }
     setLoading(true);
+    if (mode === "signup") {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/dashboard/jobs` },
+      });
+      setLoading(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      if (data.session) {
+        toast.success("Account created!");
+        navigate({ to: "/dashboard/jobs" });
+      } else {
+        toast.success("Check your email to confirm your account.");
+      }
+      return;
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
