@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Pencil, Trash2, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,26 @@ const typeStyles: Record<string, string> = {
 };
 
 export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
-  const handleSave = async (job: Job) => {
+  const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    const loadSaved = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("saved_jobs")
+        .select("job_id")
+        .eq("user_id", user.id);
+      if (data) {
+        setSavedIds(new Set(data.map((r: { job_id: number }) => r.job_id)));
+      }
+    };
+    loadSaved();
+  }, []);
+
+  const handleToggleSave = async (job: Job) => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -27,24 +47,36 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
       toast.error("You must be logged in to save jobs");
       return;
     }
-    const { data: existing } = await supabase
-      .from("saved_jobs")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("job_id", job.id)
-      .maybeSingle();
-    if (existing) {
-      toast.info("Job already saved");
-      return;
+
+    const isSaved = savedIds.has(job.id);
+
+    if (isSaved) {
+      const { error } = await supabase
+        .from("saved_jobs")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("job_id", job.id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(job.id);
+        return next;
+      });
+      toast.success("Job removed from saved");
+    } else {
+      const { error } = await supabase
+        .from("saved_jobs")
+        .insert({ user_id: user.id, job_id: job.id });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      setSavedIds((prev) => new Set(prev).add(job.id));
+      toast.success("Job saved");
     }
-    const { error } = await supabase
-      .from("saved_jobs")
-      .insert({ user_id: user.id, job_id: job.id });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Job saved");
   };
 
   if (jobs.length === 0) {
@@ -70,38 +102,50 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {jobs.map((job) => (
-              <tr key={job.id} className="transition-colors hover:bg-muted/30">
-                <td className="whitespace-nowrap px-4 py-3 font-medium text-foreground">{job.title}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{job.salary}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{job.location}</td>
-                <td className="whitespace-nowrap px-4 py-3">
-                  <Badge variant="secondary" className={cn("font-medium", typeStyles[job.jobType])}>
-                    {job.jobType}
-                  </Badge>
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{job.createdAt}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => handleSave(job)} aria-label="Save">
-                      <Bookmark className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => onEdit(job)} aria-label="Edit">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => onDelete(job)}
-                      aria-label="Delete"
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {jobs.map((job) => {
+              const isSaved = savedIds.has(job.id);
+              return (
+                <tr key={job.id} className="transition-colors hover:bg-muted/30">
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-foreground">{job.title}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{job.salary}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{job.location}</td>
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <Badge variant="secondary" className={cn("font-medium", typeStyles[job.jobType])}>
+                      {job.jobType}
+                    </Badge>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{job.createdAt}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleToggleSave(job)}
+                        aria-label={isSaved ? "Unsave" : "Save"}
+                        aria-pressed={isSaved}
+                        className={cn(isSaved && "text-primary hover:text-primary")}
+                      >
+                        <Bookmark
+                          className={cn("h-4 w-4", isSaved && "fill-current")}
+                        />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => onEdit(job)} aria-label="Edit">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => onDelete(job)}
+                        aria-label="Delete"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
