@@ -131,6 +131,7 @@ function JobsPage() {
         return;
       }
       setJobs((prev) => [fromRow(inserted as JobRow), ...prev]);
+      setPage(1);
       toast.success("Job created successfully");
     }
     setModalOpen(false);
