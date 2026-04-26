@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Job, JobType } from "@/lib/mockJobs";
+import type { Job } from "@/lib/mockJobs";
 
 interface JobFormModalProps {
   open: boolean;
