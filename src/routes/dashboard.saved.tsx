@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bookmark, MapPin, Briefcase, DollarSign, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockSavedJobs, type Job } from "@/lib/mockJobs";
+import { supabase } from "@/integrations/supabase/client";
+import { type Job } from "@/lib/mockJobs";
 
 export const Route = createFileRoute("/dashboard/saved")({
   head: () => ({
@@ -13,10 +14,81 @@ export const Route = createFileRoute("/dashboard/saved")({
   component: SavedJobsPage,
 });
 
-function SavedJobsPage() {
-  const [saved, setSaved] = useState<Job[]>(mockSavedJobs);
+interface SavedRow {
+  id: number;
+  job_id: number;
+  created_at: string;
+  jobs: {
+    id: number;
+    title: string;
+    salary: string;
+    location: string;
+    job_type: string;
+    created_at: string;
+  } | null;
+}
 
-  const handleRemove = (job: Job) => {
+interface SavedJob extends Job {
+  savedAt: string;
+}
+
+function SavedJobsPage() {
+  const [saved, setSaved] = useState<SavedJob[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("saved_jobs")
+      .select("id, job_id, created_at, jobs(id, title, salary, location, job_type, created_at)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const rows = (data as unknown as SavedRow[]) ?? [];
+    setSaved(
+      rows
+        .filter((r) => r.jobs)
+        .map((r) => ({
+          id: r.jobs!.id,
+          title: r.jobs!.title,
+          salary: r.jobs!.salary,
+          location: r.jobs!.location,
+          jobType: r.jobs!.job_type,
+          createdAt: r.jobs!.created_at?.slice(0, 10) ?? "",
+          savedAt: r.created_at?.slice(0, 10) ?? "",
+        })),
+    );
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const handleRemove = async (job: SavedJob) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase
+      .from("saved_jobs")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("job_id", job.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setSaved((prev) => prev.filter((j) => j.id !== job.id));
     toast.success("Removed from saved jobs");
   };
@@ -30,7 +102,11 @@ function SavedJobsPage() {
         </p>
       </div>
 
-      {saved.length === 0 ? (
+      {loading ? (
+        <div className="rounded-lg border border-border bg-card p-12 text-center shadow-card">
+          <p className="text-sm text-muted-foreground">Loading saved jobs...</p>
+        </div>
+      ) : saved.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card p-12 text-center shadow-card">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
             <Bookmark className="h-6 w-6 text-muted-foreground" />
@@ -62,7 +138,7 @@ function SavedJobsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-3.5 w-3.5" />
-                  Saved on {job.createdAt}
+                  Saved on {job.savedAt}
                 </div>
               </div>
               <Button
