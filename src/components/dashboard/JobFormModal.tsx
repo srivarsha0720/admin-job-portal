@@ -26,6 +26,8 @@ interface JobFormModalProps {
   initial?: Job | null;
 }
 
+const JOB_TYPES = ["Full-time", "Part-time", "Remote"];
+
 export function JobFormModal({ open, onOpenChange, onSubmit, initial }: JobFormModalProps) {
   const [title, setTitle] = useState("");
   const [salary, setSalary] = useState("");
@@ -36,24 +38,61 @@ export function JobFormModal({ open, onOpenChange, onSubmit, initial }: JobFormM
   useEffect(() => {
     if (open) {
       setTitle(initial?.title ?? "");
-      setSalary(initial?.salary ?? "");
+      // Strip non-numeric chars from existing salary string for the number input
+      const initialSalary = initial?.salary ?? "";
+      const numericSalary = String(initialSalary).replace(/[^\d.]/g, "");
+      setSalary(numericSalary);
       setLocation(initial?.location ?? "");
       setJobType(initial?.jobType ?? "Full-time");
       setErrors({});
     }
   }, [open, initial]);
 
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      newErrors.title = "Title is required";
+    } else if (trimmedTitle.length < 3) {
+      newErrors.title = "Title must be at least 3 characters";
+    }
+
+    if (!salary.toString().trim()) {
+      newErrors.salary = "Salary is required";
+    } else {
+      const salaryNum = Number(salary);
+      if (Number.isNaN(salaryNum)) {
+        newErrors.salary = "Salary must be a valid number";
+      } else if (salaryNum <= 0) {
+        newErrors.salary = "Salary must be greater than 0";
+      }
+    }
+
+    if (!location.trim()) {
+      newErrors.location = "Location is required";
+    }
+
+    if (!jobType || !JOB_TYPES.includes(jobType)) {
+      newErrors.jobType = "Please select a job type";
+    }
+
+    return newErrors;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: Record<string, string> = {};
-    if (!title.trim()) newErrors.title = "Title is required";
-    if (!salary.trim()) newErrors.salary = "Salary is required";
-    if (!location.trim()) newErrors.location = "Location is required";
+    const newErrors = validate();
     if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
     }
-    onSubmit({ title, salary, location, jobType });
+    onSubmit({
+      title: title.trim(),
+      salary: Number(salary) as unknown as string,
+      location: location.trim(),
+      jobType,
+    });
   };
 
   return (
@@ -65,7 +104,7 @@ export function JobFormModal({ open, onOpenChange, onSubmit, initial }: JobFormM
             {initial ? "Update the job details below." : "Fill in the details to create a new job listing."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -73,6 +112,7 @@ export function JobFormModal({ open, onOpenChange, onSubmit, initial }: JobFormM
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Senior Frontend Engineer"
+              aria-invalid={!!errors.title}
             />
             {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
           </div>
@@ -80,9 +120,13 @@ export function JobFormModal({ open, onOpenChange, onSubmit, initial }: JobFormM
             <Label htmlFor="salary">Salary</Label>
             <Input
               id="salary"
+              type="number"
+              min="1"
+              step="any"
               value={salary}
               onChange={(e) => setSalary(e.target.value)}
-              placeholder="e.g. $100k - $120k"
+              placeholder="e.g. 120000"
+              aria-invalid={!!errors.salary}
             />
             {errors.salary && <p className="text-xs text-destructive">{errors.salary}</p>}
           </div>
@@ -93,21 +137,25 @@ export function JobFormModal({ open, onOpenChange, onSubmit, initial }: JobFormM
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="e.g. San Francisco, CA"
+              aria-invalid={!!errors.location}
             />
             {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="jobType">Job Type</Label>
             <Select value={jobType} onValueChange={(v) => setJobType(v)}>
-              <SelectTrigger id="jobType">
-                <SelectValue />
+              <SelectTrigger id="jobType" aria-invalid={!!errors.jobType}>
+                <SelectValue placeholder="Select a job type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Full-time">Full-time</SelectItem>
-                <SelectItem value="Part-time">Part-time</SelectItem>
-                <SelectItem value="Remote">Remote</SelectItem>
+                {JOB_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {errors.jobType && <p className="text-xs text-destructive">{errors.jobType}</p>}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

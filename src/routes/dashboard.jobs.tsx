@@ -102,7 +102,7 @@ function JobsPage() {
   const handleSubmit = async (data: Omit<Job, "id" | "createdAt">) => {
     const payload = {
       title: data.title,
-      salary: data.salary,
+      salary: Number(data.salary),
       location: data.location,
       job_type: data.jobType,
     };
