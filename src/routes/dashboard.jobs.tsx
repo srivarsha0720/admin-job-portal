@@ -176,9 +176,16 @@ function JobsPage() {
         />
       </div>
 
-      <JobTable jobs={paginated} onEdit={handleEdit} onDelete={setDeleting} />
-
-      <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+      {loading ? (
+        <div className="rounded-lg border border-border bg-card p-12 text-center shadow-card">
+          <p className="text-sm text-muted-foreground">Loading jobs...</p>
+        </div>
+      ) : (
+        <>
+          <JobTable jobs={paginated} onEdit={handleEdit} onDelete={setDeleting} />
+          <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+        </>
+      )}
 
       <JobFormModal
         open={modalOpen}
