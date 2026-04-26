@@ -94,9 +94,6 @@ function LoginPage() {
               {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Demo: enter any email and password to continue.
-          </p>
         </div>
       </div>
     </div>
