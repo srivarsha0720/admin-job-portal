@@ -1,8 +1,10 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Bookmark } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Job } from "@/lib/mockJobs";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface JobTableProps {
   jobs: Job[];
@@ -17,6 +19,34 @@ const typeStyles: Record<string, string> = {
 };
 
 export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
+  const handleSave = async (job: Job) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in to save jobs");
+      return;
+    }
+    const { data: existing } = await supabase
+      .from("saved_jobs")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("job_id", job.id)
+      .maybeSingle();
+    if (existing) {
+      toast.info("Job already saved");
+      return;
+    }
+    const { error } = await supabase
+      .from("saved_jobs")
+      .insert({ user_id: user.id, job_id: job.id });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Job saved");
+  };
+
   if (jobs.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-12 text-center shadow-card">
@@ -53,6 +83,9 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
                 <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{job.createdAt}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
                   <div className="flex justify-end gap-1">
+                    <Button size="icon" variant="ghost" onClick={() => handleSave(job)} aria-label="Save">
+                      <Bookmark className="h-4 w-4" />
+                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => onEdit(job)} aria-label="Edit">
                       <Pencil className="h-4 w-4" />
                     </Button>
