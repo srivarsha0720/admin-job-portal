@@ -30,7 +30,7 @@ export function JobFormModal({ open, onOpenChange, onSubmit, initial }: JobFormM
   const [title, setTitle] = useState("");
   const [salary, setSalary] = useState("");
   const [location, setLocation] = useState("");
-  const [jobType, setJobType] = useState<JobType>("Full-time");
+  const [jobType, setJobType] = useState<string>("Full-time");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
