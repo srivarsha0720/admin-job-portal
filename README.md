@@ -20,7 +20,7 @@ This is a full-stack Job Board Admin Dashboard that allows administrators to man
 - Pagination for large datasets
 - Toast notifications for user feedback
 - Form validation
-- Edit/Delete confirmation dialogs
+- Delete confirmation dialogs
 - Responsive UI design
 
 ---
