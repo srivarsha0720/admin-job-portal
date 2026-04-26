@@ -19,6 +19,7 @@ export const Route = createFileRoute("/")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -36,11 +37,32 @@ function LoginPage() {
     if (!email.trim()) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Enter a valid email";
     if (!password) newErrors.password = "Password is required";
+    else if (mode === "signup" && password.length < 6)
+      newErrors.password = "Password must be at least 6 characters";
     if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
     }
     setLoading(true);
+    if (mode === "signup") {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/dashboard/jobs` },
+      });
+      setLoading(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      if (data.session) {
+        toast.success("Account created!");
+        navigate({ to: "/dashboard/jobs" });
+      } else {
+        toast.success("Check your email to confirm your account.");
+      }
+      return;
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
@@ -60,7 +82,9 @@ function LoginPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">JobBoard Admin</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in to manage your job listings
+            {mode === "login"
+              ? "Sign in to manage your job listings"
+              : "Create an account to get started"}
           </p>
         </div>
 
@@ -86,13 +110,32 @@ function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                autoComplete="current-password"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
               />
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+              {loading
+                ? mode === "login"
+                  ? "Signing in..."
+                  : "Creating account..."
+                : mode === "login"
+                  ? "Sign in"
+                  : "Create account"}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === "login" ? "signup" : "login");
+                  setErrors({});
+                }}
+                className="font-medium text-primary hover:underline"
+              >
+                {mode === "login" ? "Create account" : "Sign in"}
+              </button>
+            </p>
           </form>
         </div>
       </div>
