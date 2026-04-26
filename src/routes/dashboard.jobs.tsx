@@ -27,7 +27,7 @@ export const Route = createFileRoute("/dashboard/jobs")({
   component: JobsPage,
 });
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 5;
 
 interface JobRow {
   id: number;
@@ -131,6 +131,7 @@ function JobsPage() {
         return;
       }
       setJobs((prev) => [fromRow(inserted as JobRow), ...prev]);
+      setPage(1);
       toast.success("Job created successfully");
     }
     setModalOpen(false);
@@ -144,6 +145,7 @@ function JobsPage() {
       return;
     }
     setJobs((prev) => prev.filter((j) => j.id !== deleting.id));
+    setPage(1);
     toast.success("Job deleted");
     setDeleting(null);
   };
