@@ -30,14 +30,18 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Job Board Admin Dashboard" },
+      { name: "description", content: "Admin dashboard to manage job listings with authentication, CRUD operations, and saved jobs feature using Supabase." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Job Board Admin Dashboard" },
+      { property: "og:description", content: "Admin dashboard to manage job listings with authentication, CRUD operations, and saved jobs feature using Supabase." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Job Board Admin Dashboard" },
+      { name: "twitter:description", content: "Admin dashboard to manage job listings with authentication, CRUD operations, and saved jobs feature using Supabase." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a17aa98c-8630-4aca-a46d-2314d60c8478/id-preview-9853514d--b544b9cf-f67e-4379-9e2d-00550acca8e8.lovable.app-1777173478674.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a17aa98c-8630-4aca-a46d-2314d60c8478/id-preview-9853514d--b544b9cf-f67e-4379-9e2d-00550acca8e8.lovable.app-1777173478674.png" },
     ],
     links: [
       {
