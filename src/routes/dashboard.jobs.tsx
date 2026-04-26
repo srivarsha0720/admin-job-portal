@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { mockJobs, type Job } from "@/lib/mockJobs";
+import { type Job } from "@/lib/mockJobs";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/dashboard/jobs")({
   head: () => ({
@@ -28,13 +29,50 @@ export const Route = createFileRoute("/dashboard/jobs")({
 
 const PAGE_SIZE = 6;
 
+interface JobRow {
+  id: number;
+  title: string;
+  salary: string;
+  location: string;
+  job_type: string;
+  created_at: string;
+}
+
+const fromRow = (r: JobRow): Job => ({
+  id: r.id,
+  title: r.title,
+  salary: r.salary,
+  location: r.location,
+  jobType: r.job_type,
+  createdAt: r.created_at?.slice(0, 10) ?? "",
+});
+
 function JobsPage() {
-  const [jobs, setJobs] = useState<Job[]>(mockJobs);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Job | null>(null);
   const [deleting, setDeleting] = useState<Job | null>(null);
+
+  const loadJobs = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setJobs((data as JobRow[]).map(fromRow));
+  };
+
+  useEffect(() => {
+    loadJobs();
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -61,24 +99,50 @@ function JobsPage() {
     setModalOpen(true);
   };
 
-  const handleSubmit = (data: Omit<Job, "id" | "createdAt">) => {
+  const handleSubmit = async (data: Omit<Job, "id" | "createdAt">) => {
+    const payload = {
+      title: data.title,
+      salary: data.salary,
+      location: data.location,
+      job_type: data.jobType,
+    };
     if (editing) {
-      setJobs((prev) => prev.map((j) => (j.id === editing.id ? { ...j, ...data } : j)));
+      const { data: updated, error } = await supabase
+        .from("jobs")
+        .update(payload)
+        .eq("id", editing.id)
+        .select()
+        .single();
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      const row = fromRow(updated as JobRow);
+      setJobs((prev) => prev.map((j) => (j.id === editing.id ? row : j)));
       toast.success("Job updated successfully");
     } else {
-      const newJob: Job = {
-        ...data,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString().slice(0, 10),
-      };
-      setJobs((prev) => [newJob, ...prev]);
+      const { data: inserted, error } = await supabase
+        .from("jobs")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      setJobs((prev) => [fromRow(inserted as JobRow), ...prev]);
       toast.success("Job created successfully");
     }
     setModalOpen(false);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleting) return;
+    const { error } = await supabase.from("jobs").delete().eq("id", deleting.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setJobs((prev) => prev.filter((j) => j.id !== deleting.id));
     toast.success("Job deleted");
     setDeleting(null);
@@ -112,9 +176,16 @@ function JobsPage() {
         />
       </div>
 
-      <JobTable jobs={paginated} onEdit={handleEdit} onDelete={setDeleting} />
-
-      <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+      {loading ? (
+        <div className="rounded-lg border border-border bg-card p-12 text-center shadow-card">
+          <p className="text-sm text-muted-foreground">Loading jobs...</p>
+        </div>
+      ) : (
+        <>
+          <JobTable jobs={paginated} onEdit={handleEdit} onDelete={setDeleting} />
+          <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+        </>
+      )}
 
       <JobFormModal
         open={modalOpen}
