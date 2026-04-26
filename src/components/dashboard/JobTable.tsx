@@ -19,6 +19,34 @@ const typeStyles: Record<string, string> = {
 };
 
 export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
+  const handleSave = async (job: Job) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in to save jobs");
+      return;
+    }
+    const { data: existing } = await supabase
+      .from("saved_jobs")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("job_id", job.id)
+      .maybeSingle();
+    if (existing) {
+      toast.info("Job already saved");
+      return;
+    }
+    const { error } = await supabase
+      .from("saved_jobs")
+      .insert({ user_id: user.id, job_id: job.id });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Job saved");
+  };
+
   if (jobs.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-12 text-center shadow-card">
