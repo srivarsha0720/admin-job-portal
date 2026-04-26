@@ -98,7 +98,7 @@ export function JobFormModal({ open, onOpenChange, onSubmit, initial }: JobFormM
           </div>
           <div className="space-y-2">
             <Label htmlFor="jobType">Job Type</Label>
-            <Select value={jobType} onValueChange={(v) => setJobType(v as JobType)}>
+            <Select value={jobType} onValueChange={(v) => setJobType(v)}>
               <SelectTrigger id="jobType">
                 <SelectValue />
               </SelectTrigger>
