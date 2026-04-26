@@ -145,6 +145,7 @@ function JobsPage() {
       return;
     }
     setJobs((prev) => prev.filter((j) => j.id !== deleting.id));
+    setPage(1);
     toast.success("Job deleted");
     setDeleting(null);
   };
