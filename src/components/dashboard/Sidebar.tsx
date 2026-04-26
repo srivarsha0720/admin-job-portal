@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { Briefcase, Bookmark, LogOut, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SidebarProps {
   open: boolean;
@@ -17,7 +18,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Logged out successfully");
     navigate({ to: "/" });
   };

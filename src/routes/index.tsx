@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,7 +24,13 @@ function LoginPage() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/dashboard/jobs" });
+    });
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: typeof errors = {};
     if (!email.trim()) newErrors.email = "Email is required";
@@ -34,10 +41,14 @@ function LoginPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      toast.success("Welcome back!");
-      navigate({ to: "/dashboard/jobs" });
-    }, 600);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Welcome back!");
+    navigate({ to: "/dashboard/jobs" });
   };
 
   return (
@@ -83,9 +94,6 @@ function LoginPage() {
               {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Demo: enter any email and password to continue.
-          </p>
         </div>
       </div>
     </div>
