@@ -1,8 +1,10 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Bookmark } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Job } from "@/lib/mockJobs";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface JobTableProps {
   jobs: Job[];
