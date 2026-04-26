@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { Briefcase, Bookmark, LogOut, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SidebarProps {
   open: boolean;
