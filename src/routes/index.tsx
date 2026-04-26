@@ -24,7 +24,13 @@ function LoginPage() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/dashboard/jobs" });
+    });
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: typeof errors = {};
     if (!email.trim()) newErrors.email = "Email is required";
@@ -35,10 +41,14 @@ function LoginPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      toast.success("Welcome back!");
-      navigate({ to: "/dashboard/jobs" });
-    }, 600);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Welcome back!");
+    navigate({ to: "/dashboard/jobs" });
   };
 
   return (
