@@ -27,7 +27,7 @@ export const Route = createFileRoute("/dashboard/jobs")({
   component: JobsPage,
 });
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 5;
 
 interface JobRow {
   id: number;
