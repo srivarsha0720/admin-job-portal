@@ -82,7 +82,9 @@ function LoginPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">JobBoard Admin</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in to manage your job listings
+            {mode === "login"
+              ? "Sign in to manage your job listings"
+              : "Create an account to get started"}
           </p>
         </div>
 
@@ -108,13 +110,32 @@ function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                autoComplete="current-password"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
               />
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+              {loading
+                ? mode === "login"
+                  ? "Signing in..."
+                  : "Creating account..."
+                : mode === "login"
+                  ? "Sign in"
+                  : "Create account"}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === "login" ? "signup" : "login");
+                  setErrors({});
+                }}
+                className="font-medium text-primary hover:underline"
+              >
+                {mode === "login" ? "Create account" : "Sign in"}
+              </button>
+            </p>
           </form>
         </div>
       </div>
